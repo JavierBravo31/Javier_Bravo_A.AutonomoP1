@@ -51,4 +51,127 @@ public class HardwareService {
     public List<HardwareEntity> obtenerInventario() {
         return inventario;
     }
+
+    public String procesarImperativo() {
+
+        LocalDate fechaLimite = LocalDate.now().minusYears(5);
+
+        int laptopCantidad = 0;
+        int pcCantidad = 0;
+        int servidorCantidad = 0;
+
+        BigDecimal laptopTotal = BigDecimal.ZERO;
+        BigDecimal pcTotal = BigDecimal.ZERO;
+        BigDecimal servidorTotal = BigDecimal.ZERO;
+
+        HardwareEntity laptopMasCaro = null;
+        HardwareEntity pcMasCaro = null;
+        HardwareEntity servidorMasCaro = null;
+
+        for (HardwareEntity equipo : inventario) {
+
+            if (equipo.getFechaCompra().isAfter(fechaLimite)
+                    && equipo.getEstado().equals("ACTIVO")) {
+
+                if (equipo.getCategoria().equals("Laptop")) {
+
+                    laptopCantidad++;
+                    laptopTotal = laptopTotal.add(equipo.getPrecio());
+
+                    if (laptopMasCaro == null ||
+                            equipo.getPrecio().compareTo(laptopMasCaro.getPrecio()) > 0) {
+
+                        laptopMasCaro = equipo;
+                    }
+
+                } else if (equipo.getCategoria().equals("PC")) {
+
+                    pcCantidad++;
+                    pcTotal = pcTotal.add(equipo.getPrecio());
+
+                    if (pcMasCaro == null ||
+                            equipo.getPrecio().compareTo(pcMasCaro.getPrecio()) > 0) {
+
+                        pcMasCaro = equipo;
+                    }
+
+                } else {
+
+                    servidorCantidad++;
+                    servidorTotal = servidorTotal.add(equipo.getPrecio());
+
+                    if (servidorMasCaro == null ||
+                            equipo.getPrecio().compareTo(servidorMasCaro.getPrecio()) > 0) {
+
+                        servidorMasCaro = equipo;
+                    }
+                }
+            }
+        }
+
+        BigDecimal laptopPromedio = BigDecimal.ZERO;
+        BigDecimal pcPromedio = BigDecimal.ZERO;
+        BigDecimal servidorPromedio = BigDecimal.ZERO;
+
+        if (laptopCantidad > 0) {
+            laptopPromedio = laptopTotal.divide(
+                    BigDecimal.valueOf(laptopCantidad),
+                    2,
+                    java.math.RoundingMode.HALF_UP
+            );
+        }
+
+        if (pcCantidad > 0) {
+            pcPromedio = pcTotal.divide(
+                    BigDecimal.valueOf(pcCantidad),
+                    2,
+                    java.math.RoundingMode.HALF_UP
+            );
+        }
+
+        if (servidorCantidad > 0) {
+            servidorPromedio = servidorTotal.divide(
+                    BigDecimal.valueOf(servidorCantidad),
+                    2,
+                    java.math.RoundingMode.HALF_UP
+            );
+        }
+
+        return """
+                REPORTE IMPERATIVO
+
+                Laptop
+                Cantidad: %d
+                Valor Total: %s
+                Promedio: %s
+                Equipo Más Caro: %s
+
+                PC
+                Cantidad: %d
+                Valor Total: %s
+                Promedio: %s
+                Equipo Más Caro: %s
+
+                Servidor
+                Cantidad: %d
+                Valor Total: %s
+                Promedio: %s
+                Equipo Más Caro: %s
+                """.formatted(
+                laptopCantidad,
+                laptopTotal,
+                laptopPromedio,
+                laptopMasCaro != null ? laptopMasCaro.getModelo() : "N/A",
+
+                pcCantidad,
+                pcTotal,
+                pcPromedio,
+                pcMasCaro != null ? pcMasCaro.getModelo() : "N/A",
+
+                servidorCantidad,
+                servidorTotal,
+                servidorPromedio,
+                servidorMasCaro != null ? servidorMasCaro.getModelo() : "N/A"
+        );
+    }
 }
