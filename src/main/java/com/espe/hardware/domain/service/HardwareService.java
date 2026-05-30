@@ -2,11 +2,15 @@ package com.espe.hardware.domain.service;
 
 import com.espe.hardware.persistence.HardwareEntity;
 import org.springframework.stereotype.Service;
-
+import java.util.Comparator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+
 
 @Service
 public class HardwareService {
@@ -173,5 +177,47 @@ public class HardwareService {
                 servidorPromedio,
                 servidorMasCaro != null ? servidorMasCaro.getModelo() : "N/A"
         );
+    }
+    public String procesarFuncional() {
+
+        LocalDate fechaLimite = LocalDate.now().minusYears(5);
+
+        Map<String, List<HardwareEntity>> equiposPorCategoria = inventario.stream()
+                .filter(equipo -> equipo.getFechaCompra().isAfter(fechaLimite))
+                .filter(equipo -> equipo.getEstado().equals("ACTIVO"))
+                .collect(Collectors.groupingBy(HardwareEntity::getCategoria));
+
+        StringBuilder reporte = new StringBuilder();
+        reporte.append("REPORTE FUNCIONAL\n\n");
+
+        equiposPorCategoria.forEach((categoria, equipos) -> {
+
+            BigDecimal valorTotal = equipos.stream()
+                    .map(HardwareEntity::getPrecio)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            BigDecimal promedio = BigDecimal.ZERO;
+
+            if (!equipos.isEmpty()) {
+                promedio = valorTotal.divide(
+                        BigDecimal.valueOf(equipos.size()),
+                        2,
+                        java.math.RoundingMode.HALF_UP
+                );
+            }
+
+            Optional<HardwareEntity> equipoMasCaro = equipos.stream()
+                    .max(Comparator.comparing(HardwareEntity::getPrecio));
+
+            reporte.append(categoria).append("\n");
+            reporte.append("Cantidad: ").append(equipos.size()).append("\n");
+            reporte.append("Valor Total: ").append(valorTotal).append("\n");
+            reporte.append("Promedio: ").append(promedio).append("\n");
+            reporte.append("Equipo Más Caro: ")
+                    .append(equipoMasCaro.map(HardwareEntity::getModelo).orElse("N/A"))
+                    .append("\n\n");
+        });
+
+        return reporte.toString();
     }
 }
